@@ -5,6 +5,10 @@ const WebpackDevServer = require('webpack-dev-server');
 const webpackConfig = require('./webpack.config');
 const webpackDevConfig = require('./webpack.dev.config');
 const mergeWebpack = require('webpack-merge');
+const env = require('gulp-env');
+const stringifyObject = require('stringify-object');
+const file = require('gulp-file');
+const HOST = "0.0.0.0";
 
 // require('laravel-elixir-vue');
 // require('laravel-elixir-webpack-official');
@@ -25,12 +29,23 @@ Elixir.webpack.mergeConfig(webpackDevConfig);*/
  |
  */
 
+gulp.task('spa-config', () => {
+    env({
+        file: '.env',
+        type: 'ini'
+    });
+    let spaConfig = require('./spa.config');
+    let string = stringifyObject(spaConfig);
+    return file('config.js', `module.exports = ${string};`, {src:true})
+        .pipe(gulp.dest('./resources/assets/spa/js'));
+});
+
 gulp.task('webpack-dev-server', () => {
     let config = mergeWebpack(webpackConfig, webpackDevConfig);
     
     let inlineHot = [
         'webpack/hot/dev-server',
-        'webpack-dev-server/client?http://192.168.10.10:8080'
+        `webpack-dev-server/client?http://${HOST}:8080`
     ];
 
     config.entry.admin = [config.entry.admin].concat(inlineHot);
@@ -40,7 +55,7 @@ gulp.task('webpack-dev-server', () => {
         disableHostCheck: true,
         hot: true,
         proxy: {
-            '*': 'http://192.168.10.10:8000'
+            '*': `http://${HOST}:8000`
         },
         watchOptions: {
             poll: true,
@@ -49,7 +64,7 @@ gulp.task('webpack-dev-server', () => {
         publicPath: config.output.publicPath,
         noInfo: true,
         stats: { colors: true }
-    }).listen(8080, "0.0.0.0", () => {
+    }).listen(8080, HOST, () => {
         console.log("Bundling project...");
     });
 });
@@ -59,11 +74,11 @@ elixir(mix => {
         .sass('./resources/assets/spa/sass/spa.scss')
         .copy('./node_modules/materialize-css/fonts/roboto', './public/fonts/roboto');
 
-    gulp.start('webpack-dev-server');
+    gulp.start('spa-config', 'webpack-dev-server');
 
     mix.browserSync({
         open: false,
-        host: '0.0.0.0',
-        proxy: 'http://192.168.10.10:8080'
+        host: HOST,
+        proxy: `http://${HOST}:8080`
     });
 });

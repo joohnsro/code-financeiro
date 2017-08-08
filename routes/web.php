@@ -27,7 +27,6 @@ Route::get('/app', function () {
     return view('layouts.spa');
 });
 
-
 Route::group([
     'prefix'     => 'admin',
     'as'         => 'admin.'
